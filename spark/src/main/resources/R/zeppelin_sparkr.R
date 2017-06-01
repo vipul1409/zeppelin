@@ -62,7 +62,7 @@ z.input <- function(name, value) {
 }
 
 # notify script is initialized
-SparkR:::callJMethod(.zeppelinR, "onScriptInitialized")
+SparkR:::callJMethod(.zeppelinR, "onScriptInitialized", Sys.getpid())
 
 while (TRUE) {
   req <- SparkR:::callJMethod(.zeppelinR, "getRequest")
@@ -76,7 +76,9 @@ while (TRUE) {
       SparkR:::callJMethod(.zeppelinR, "setResponse", "", FALSE)
     }, error = function(e) {
       SparkR:::callJMethod(.zeppelinR, "setResponse", toString(e), TRUE)
-    })    
+    }, interrupt = function(i) {
+      SparkR:::callJMethod(.zeppelinR, "setResponse", "Last run canceled by user.", TRUE)
+    })
   } else if (type == "set") {
     tryCatch({
       ret <- assign(stmt, value)

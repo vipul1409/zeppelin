@@ -50,6 +50,7 @@ public class ZeppelinR implements ExecuteResultHandler {
   private InterpreterOutput initialOutput;
   private final int port;
   private boolean rScriptRunning;
+  private long rPid;
 
   /**
    * To be notified R repl initialization
@@ -113,6 +114,7 @@ public class ZeppelinR implements ExecuteResultHandler {
     this.libPath = libPath;
     this.sparkVersion = sparkVersion;
     this.port = sparkRBackendPort;
+    this.rPid = -1;
     try {
       File scriptFile = File.createTempFile("zeppelin_sparkr-", ".R");
       scriptPath = scriptFile.getAbsolutePath();
@@ -322,10 +324,21 @@ public class ZeppelinR implements ExecuteResultHandler {
   /**
    * invoked by src/main/resources/R/zeppelin_sparkr.R
    */
-  public void onScriptInitialized() {
+  public void onScriptInitialized(long pid) {
     synchronized (rScriptInitializeNotifier) {
+      rPid = pid;
       rScriptInitialized = true;
       rScriptInitializeNotifier.notifyAll();
+    }
+  }
+
+  public void interrupt() throws IOException {
+    if (rPid > -1) {
+      logger.info("Sending SIGINT signal to PID : " + rPid);
+      Runtime.getRuntime().exec("kill -SIGINT " + rPid);
+    } else {
+      logger.error("Non UNIX/Linux system, close the interpreter");
+      close();
     }
   }
 

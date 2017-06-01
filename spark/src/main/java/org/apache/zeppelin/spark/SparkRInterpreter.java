@@ -188,6 +188,11 @@ public class SparkRInterpreter extends Interpreter {
   public void cancel(InterpreterContext context) {
     if (this.sc != null) {
       sc.cancelJobGroup(getJobGroup(context));
+      try {
+        zeppelinR.interrupt();
+      } catch (Exception ex) {
+        logger.error("Error while interrupting R process.", ex);
+      }
     }
   }
 
