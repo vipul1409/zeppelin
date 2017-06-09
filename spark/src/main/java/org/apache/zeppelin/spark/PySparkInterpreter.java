@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javolution.io.Struct;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -277,14 +278,20 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
     public String statements;
     public String jobGroup;
     public String jobDescription;
+    public Boolean isAutoCompleteCmd;
 
     public PythonInterpretRequest(String statements, String jobGroup,
         String jobDescription) {
+      this(statements, jobGroup, jobDescription, false);
+    }
+
+    public PythonInterpretRequest(String statements, String jobGroup,
+                                  String jobDescription, boolean isAutoCompleteCmd) {
       this.statements = statements;
       this.jobGroup = jobGroup;
       this.jobDescription = jobDescription;
+      this.isAutoCompleteCmd = isAutoCompleteCmd;
     }
-
     public String statements() {
       return statements;
     }
@@ -296,6 +303,8 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
     public String jobDescription() {
       return jobDescription;
     }
+
+    public boolean isAutoCompleteCmd() { return isAutoCompleteCmd; }
   }
 
   Integer statementSetNotifier = new Integer(0);
@@ -484,7 +493,7 @@ public class PySparkInterpreter extends Interpreter implements ExecuteResultHand
       return new LinkedList<>();
     }
 
-    pythonInterpretRequest = new PythonInterpretRequest(completionCommand, "", "");
+    pythonInterpretRequest = new PythonInterpretRequest(completionCommand, "", "", true);
     statementOutput = null;
 
     synchronized (statementSetNotifier) {

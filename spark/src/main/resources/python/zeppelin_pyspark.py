@@ -188,41 +188,56 @@ class PySparkCompletion:
       return objectDefList
 
   def getMethodCompletion(self, text_value):
+    f.write("In method completion with {} \n".format(text_value))
     execResult = locals()
+    objectDefList = []
     if text_value == None:
       return None
-    completion_target = text_value
+    completion_target = ""
     try:
-      if len(completion_target) <= 0:
-        return None
-      if text_value[-1] == ".":
-        completion_target = text_value[:-1]
-      exec("{} = dir({})".format("objectDefList", completion_target), globals(), execResult)
+      if "." in text_value:
+        completion_target = text_value[0:text_value.rfind(".")]
+      f.write("Setting completion target to {} \n".format(completion_target))
+      f.write("{} = dir({}) \n".format("objectDefList", completion_target))
+      if completion_target == "" :
+        objectDefList = list(globals().keys())
+      else:
+        objectDefList = dir(eval(completion_target))
     except:
+      f.write("Exception in getMethodCompletion \n")
       return None
     else:
-      return list(execResult['objectDefList'])
+      f.write("objectDefList : \n")
+      if "." not in text_value:
+        f.write("No dot\n")
+        return list(objectDefList)
+        #return list(filter(lambda x : x.startswith(text_value), list(objectDefList)))
+      elif text_value[-1] == ".":
+        f.write("Dot in the end\n")
+        return list(objectDefList)
+      else:
+        last_part = text_value[(text_value.rfind(".") + 1):len(text_value)]
+        f.write("Last Part is {}".format(last_part))
+        return list(filter(lambda x : x.startswith(last_part), list(objectDefList)))
 
 
   def getCompletion(self, text_value):
+    f.write("Completion function called with text_value : {} \n".format(text_value))
     completionList = set()
-
-    globalCompletionList = self.getGlobalCompletion()
-    if globalCompletionList != None:
-      for completionItem in list(globalCompletionList):
-        completionList.add(completionItem)
-
     if text_value != None:
       objectCompletionList = self.getMethodCompletion(text_value)
       if objectCompletionList != None:
         for completionItem in list(objectCompletionList):
           completionList.add(completionItem)
     if len(completionList) <= 0:
+      f.write("completionList is empty\n")
       self.interpreterObject.setStatementsFinished("", False)
     else:
+      f.write("Creating json\n")
       result = json.dumps(list(filter(lambda x : not re.match("^__.*", x), list(completionList))))
       self.interpreterObject.setStatementsFinished(result, False)
 
+f = open("/Users/vipulmodi/src/open_src/my_zepp/zeppelin/pyspark.log","w")
 client = GatewayClient(port=int(sys.argv[1]))
 sparkVersion = SparkVersion(int(sys.argv[2]))
 if sparkVersion.isSpark2():
@@ -299,6 +314,7 @@ while True :
     stmts = req.statements().split("\n")
     jobGroup = req.jobGroup()
     jobDesc = req.jobDescription()
+    isAutoCompleteCmd = req.isAutoCompleteCmd();
     
     # Get post-execute hooks
     try:
@@ -316,6 +332,8 @@ while True :
       if hook:
         nhooks += 1
 
+    if(isAutoCompleteCmd):
+      nhooks=0
     if stmts:
       # use exec mode to compile the statements except the last statement,
       # so that the last statement's evaluation will be printed to stdout
@@ -343,11 +361,14 @@ while True :
           code = compile(mod, '<stdin>', 'exec')
           exec(code, _zcUserQueryNameSpace)
 
+        f.flush()
         intp.setStatementsFinished("", False)
       except Py4JJavaError:
+        f.flush()
         # raise it to outside try except
         raise
       except:
+        f.flush()
         exception = traceback.format_exc()
         m = re.search("File \"<stdin>\", line (\d+).*", exception)
         if m:
@@ -357,15 +378,18 @@ while True :
         else:
           intp.setStatementsFinished(exception, True)
     else:
+      f.flush()
       intp.setStatementsFinished("", False)
 
   except Py4JJavaError:
+    f.flush()
     excInnerError = traceback.format_exc() # format_tb() does not return the inner exception
     innerErrorStart = excInnerError.find("Py4JJavaError:")
     if innerErrorStart > -1:
        excInnerError = excInnerError[innerErrorStart:]
     intp.setStatementsFinished(excInnerError + str(sys.exc_info()), True)
   except:
+    f.flush()
     intp.setStatementsFinished(traceback.format_exc(), True)
 
   output.reset()
