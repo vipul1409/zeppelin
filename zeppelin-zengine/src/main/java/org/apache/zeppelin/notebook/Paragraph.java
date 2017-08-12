@@ -65,6 +65,7 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
   String text;
   String user;
   Date dateUpdated;
+  public transient String textToRun;
   private Map<String, Object> config; // paragraph configs like isOpen, colWidth, etc
   public GUI settings;          // form and parameter settings
 
@@ -86,6 +87,12 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
     super(generateId(), null);
     config = new HashMap<>();
     settings = new GUI();
+  }
+
+  public Paragraph(String paragraphId, Note note, JobListener listener,
+                   InterpreterFactory factory, InterpreterSettingManager interpreterSettingManager,
+                   String originalText) {
+    this(paragraphId, note, listener, factory, interpreterSettingManager);
   }
 
   public Paragraph(String paragraphId, Note note, JobListener listener,
@@ -204,7 +211,7 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
   }
 
   public String getRequiredReplName() {
-    return getRequiredReplName(text);
+    return getRequiredReplName(textToRun);
   }
 
   public static String getRequiredReplName(String text) {
@@ -234,7 +241,7 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
   }
 
   public String getScriptBody() {
-    return getScriptBody(text);
+    return getScriptBody(textToRun);
   }
 
   public static String getScriptBody(String text) {

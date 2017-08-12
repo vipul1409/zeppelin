@@ -74,6 +74,7 @@ public class Note implements ParagraphJobListener, JsonSerializable {
   }
 
   final List<Paragraph> paragraphs = new LinkedList<>();
+  public List<DataSources> dataSources = new LinkedList<>();
 
   private String name = "";
   private String id;

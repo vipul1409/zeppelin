@@ -36,6 +36,14 @@ limitations under the License.
   </div>
 
   <div>
+    Output Alias: <input ng-model="paragraph.alias">
+    <select ng-model="paragraph.selectedDatasource"
+            ng-options="x for x in paragraph.datasourceNames"
+            ng-change="updateDs()">
+    </select>
+  </div>
+
+  <div>
     <div ng-if="!paragraph.config.editorHide && !viewOnly" style="margin-bottom:3px;">
       <code-editor
         paragraph-id="paragraph.id"

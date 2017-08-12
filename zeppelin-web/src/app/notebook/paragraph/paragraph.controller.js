@@ -42,6 +42,7 @@ function ParagraphCtrl ($scope, $rootScope, $route, $window, $routeParams, $loca
   $scope.paragraph.results.msg = []
   $scope.originalText = ''
   $scope.editor = null
+  $scope.paragraph.datasourceNames = []
 
   // transactional info for spell execution
   $scope.spellTransaction = {
@@ -72,7 +73,7 @@ function ParagraphCtrl ($scope, $rootScope, $route, $window, $routeParams, $loca
         if (filtered.length === 1) {
           let paragraph = filtered[0]
           websocketMsgSrv.runParagraph(paragraph.id, paragraph.title, paragraph.text,
-            paragraph.config, paragraph.settings.params)
+            paragraph.config, paragraph.settings.params, $scope.selectedDatasource)
         } else {
           ngToast.danger({
             content: 'Cannot find a paragraph with id \'' + paragraphId + '\'',
@@ -125,6 +126,8 @@ function ParagraphCtrl ($scope, $rootScope, $route, $window, $routeParams, $loca
   $scope.init = function (newParagraph, note) {
     $scope.paragraph = newParagraph
     $scope.parentNote = note
+    $scope.paragraph.datasourceNames = note.dataSources.map(function(ds) { return ds.name })
+    $scope.paragraph.datasourceNames.push('spark')
     $scope.originalText = angular.copy(newParagraph.text)
     $scope.chart = {}
     $scope.baseMapOption = ['Streets', 'Satellite', 'Hybrid', 'Topo', 'Gray', 'Oceans', 'Terrain']
@@ -143,6 +146,9 @@ function ParagraphCtrl ($scope, $rootScope, $route, $window, $routeParams, $loca
     initializeDefault($scope.paragraph.config)
   }
 
+  $scope.updateDs = function() {
+    console.log($scope.paragraph.selectedDatasource)
+  }
   const initializeDefault = function (config) {
     let forms = $scope.paragraph.settings.forms
 
@@ -373,7 +379,8 @@ function ParagraphCtrl ($scope, $rootScope, $route, $window, $routeParams, $loca
 
   $scope.runParagraphUsingBackendInterpreter = function (paragraphText) {
     websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title,
-      paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params)
+      paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params,
+      $scope.paragraph.selectedDatasource, $scope.paragraph.alias)
   }
 
   $scope.saveParagraph = function (paragraph) {

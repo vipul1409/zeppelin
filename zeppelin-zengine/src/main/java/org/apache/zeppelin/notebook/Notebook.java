@@ -536,7 +536,42 @@ public class Notebook implements NoteEventListener {
       }
     }
 
+    logger.info("Adding data sources");
+    addDataSources(note);
+
     return note;
+  }
+
+  private void addDataSources(Note note) {
+    note.dataSources.clear();
+
+    //Add a mysql datasources
+    Map<String, String> mySqlDsParams = new HashMap();
+    mySqlDsParams.put("type", "mysql");
+    mySqlDsParams.put("host", "localhost");
+    mySqlDsParams.put("dbname", "employees");
+    mySqlDsParams.put("user", "root");
+    mySqlDsParams.put("password", "root");
+    DataSources mysqlDs = new DataSources("mysql", mySqlDsParams);
+
+    //Add a file system datasources
+    Map<String, String> fileDsParams = new HashMap();
+    fileDsParams.put("location", "/Users/vipulmodi/Desktop/salaries_view.csv");
+    fileDsParams.put("type", "file");
+    DataSources fileDs = new DataSources("file", fileDsParams);
+
+    note.dataSources.add(mysqlDs);
+    note.dataSources.add(fileDs);
+  }
+
+  private String getDataSources(String testuser1) {
+    return "[{\"ds_type\":\"mysqldatasource\",\"data\":\"" +
+        "{'port': '2222', 'aliasName': 'test2', 'host': 'sdlkfnd', " +
+        "'password': 'dlkfnsdl', 'owner': 'testuser1', 'id': 9, " +
+        "'name': 'test22', 'username': 'lkdfnlds'}\"}," +
+        "{\"ds_type\":\"filedatasource\",\"data\":\"" +
+        "{'owner': 'testuser1', 'aliasName': 'test', " +
+        "'id': 2, 'url': 'http://www.google.com'}\"}]";
   }
 
   void loadAllNotes(AuthenticationInfo subject) throws IOException {

@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.activation.DataSource;
 import javax.servlet.http.HttpServletRequest;
 
 import com.google.common.base.Strings;
@@ -1658,7 +1659,7 @@ public class NotebookServer extends WebSocketServlet
 
       Note note = notebook.getNote(noteId);
       Paragraph p = setParagraphUsingMessage(note, fromMessage,
-          paragraphId, text, title, params, config);
+          paragraphId, text, title, params, config, text);
 
       persistAndExecuteSingleParagraph(conn, note, p);
     }
@@ -1688,7 +1689,7 @@ public class NotebookServer extends WebSocketServlet
 
     final Note note = notebook.getNote(noteId);
     Paragraph p = setParagraphUsingMessage(note, fromMessage, paragraphId,
-        text, title, params, config);
+        text, title, params, config, text);
     p.setResult(fromMessage.get("results"));
     p.setErrorMessage((String) fromMessage.get("errorMessage"));
     p.setStatusWithoutNotification(status);
@@ -1746,11 +1747,60 @@ public class NotebookServer extends WebSocketServlet
     // 2. set paragraph values
     String text = (String) fromMessage.get("paragraph");
     String title = (String) fromMessage.get("title");
+
+    final String dsName = (String) fromMessage.get("ds");
+    final String output_name = (String) fromMessage.get("alias");
+    String textToRun = "";
+    LOG.info("Data source name is : " + dsName);
+    if (dsName.equals("mysql")) {
+      Map<String, String> dsMapAttr =
+          note.dataSources.get(0).attributes;
+      String typeDs = dsMapAttr.get("type");
+      if (typeDs.equals("mysql")) {
+        String mySqlTemplate = "val %s = sqlContext.read.format(\"jdbc\")." +
+            "option(\"url\", \"jdbc:mysql://%s/%s\").\n" +
+            "option(\"driver\", \"com.mysql.jdbc.Driver\")." +
+            "option(\"user\", \"%s\")." +
+            "option(\"password\", \"%s\")." +
+            "option(\"dbtable\",\"(%s) as %s\")." +
+            "load()\n" +
+            "spark.catalog.dropTempView(\"%s\")\n" +
+            "%s.registerTempTable(\"%s\")\n" +
+            "z.show(%s)\n";
+        textToRun = String.format(mySqlTemplate,
+            output_name,
+            dsMapAttr.get("host"),
+            dsMapAttr.get("dbname"),
+            dsMapAttr.get("user"),
+            dsMapAttr.get("password"),
+            text,
+            "temp_alias",
+            output_name,
+            output_name,
+            output_name,
+            output_name
+        );
+      } else if (typeDs.equals("file")) {
+        String fileTemplate = "val %s = " +
+            "spark.read.option(\"header\",\"true\")." +
+            "csv(\"%s\")" +
+            "%s.registerTempTable(\"%s\")";
+        textToRun = String.format(fileTemplate,
+            output_name,
+            dsMapAttr.get("location"),
+            output_name,
+            output_name
+            );
+      }
+    }
+
     Map<String, Object> params = (Map<String, Object>) fromMessage.get("params");
     Map<String, Object> config = (Map<String, Object>) fromMessage.get("config");
 
+    LOG.info("Text to run: " + textToRun);
+    LOG.info("Text : " + text);
     Paragraph p = setParagraphUsingMessage(note, fromMessage, paragraphId,
-        text, title, params, config);
+        text, title, params, config, textToRun);
 
     persistAndExecuteSingleParagraph(conn, note, p);
   }
@@ -1805,10 +1855,11 @@ public class NotebookServer extends WebSocketServlet
 
   private Paragraph setParagraphUsingMessage(Note note, Message fromMessage, String paragraphId,
                                              String text, String title, Map<String, Object> params,
-                                             Map<String, Object> config) {
+                                             Map<String, Object> config, String orignalText) {
     Paragraph p = note.getParagraph(paragraphId);
     p.setText(text);
     p.setTitle(title);
+    p.textToRun = orignalText;
     AuthenticationInfo subject =
         new AuthenticationInfo(fromMessage.principal, fromMessage.roles, fromMessage.ticket);
     p.setAuthenticationInfo(subject);

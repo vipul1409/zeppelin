@@ -19,6 +19,7 @@ package org.apache.zeppelin.notebook.socket;
 
 import com.google.gson.Gson;
 import org.apache.zeppelin.common.JsonSerializable;
+import org.apache.zeppelin.notebook.Paragraph;
 
 import java.util.HashMap;
 import java.util.Map;

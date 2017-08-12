@@ -187,7 +187,8 @@ function WebsocketMessageService ($rootScope, websocketEvents) {
       })
     },
 
-    runParagraph: function (paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams) {
+    runParagraph: function (paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams,
+                            datasource, alias) {
       websocketEvents.sendNewEvent({
         op: 'RUN_PARAGRAPH',
         data: {
@@ -195,7 +196,9 @@ function WebsocketMessageService ($rootScope, websocketEvents) {
           title: paragraphTitle,
           paragraph: paragraphData,
           config: paragraphConfig,
-          params: paragraphParams
+          params: paragraphParams,
+          ds: datasource,
+          alias: alias
         }
       })
     },
