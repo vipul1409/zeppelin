@@ -51,16 +51,7 @@ import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.remote.RemoteAngularObjectRegistry;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterProcessListener;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
-import org.apache.zeppelin.notebook.JobListenerFactory;
-import org.apache.zeppelin.notebook.Folder;
-import org.apache.zeppelin.notebook.Note;
-import org.apache.zeppelin.notebook.Notebook;
-import org.apache.zeppelin.notebook.NotebookAuthorization;
-import org.apache.zeppelin.notebook.NotebookEventListener;
-import org.apache.zeppelin.notebook.NotebookImportDeserializer;
-import org.apache.zeppelin.notebook.Paragraph;
-import org.apache.zeppelin.notebook.ParagraphJobListener;
-import org.apache.zeppelin.notebook.ParagraphRuntimeInfo;
+import org.apache.zeppelin.notebook.*;
 import org.apache.zeppelin.notebook.repo.NotebookRepo.Revision;
 import org.apache.zeppelin.notebook.socket.Message;
 import org.apache.zeppelin.notebook.socket.Message.OP;
@@ -1748,14 +1739,15 @@ public class NotebookServer extends WebSocketServlet
     String text = (String) fromMessage.get("paragraph");
     String title = (String) fromMessage.get("title");
 
-    final String dsName = (String) fromMessage.get("ds");
+    String dsName = (String) fromMessage.get("ds");
+    dsName = (dsName == null ? "" : dsName);
     final String output_name = (String) fromMessage.get("alias");
     String textToRun = "";
     LOG.info("Data source name is : " + dsName);
-    if (dsName.equals("mysql")) {
+    if (dsName != null && !dsName.equals("")) {
       Map<String, String> dsMapAttr =
-          note.dataSources.get(0).attributes;
-      String typeDs = dsMapAttr.get("type");
+          getDataSourceAttr(note.dataSources, dsName);
+      String typeDs = (dsMapAttr == null ? "" : dsMapAttr.get("type"));
       if (typeDs.equals("mysql")) {
         String mySqlTemplate = "val %s = sqlContext.read.format(\"jdbc\")." +
             "option(\"url\", \"jdbc:mysql://%s/%s\").\n" +
@@ -1783,15 +1775,19 @@ public class NotebookServer extends WebSocketServlet
       } else if (typeDs.equals("file")) {
         String fileTemplate = "val %s = " +
             "spark.read.option(\"header\",\"true\")." +
-            "csv(\"%s\")" +
-            "%s.registerTempTable(\"%s\")";
+            "csv(\"%s\")\n" +
+            "%s.registerTempTable(\"%s\")\n";
         textToRun = String.format(fileTemplate,
             output_name,
             dsMapAttr.get("location"),
             output_name,
             output_name
-            );
+        );
+      } else {
+        textToRun = text;
       }
+    } else {
+      textToRun = text;
     }
 
     Map<String, Object> params = (Map<String, Object>) fromMessage.get("params");
@@ -1803,6 +1799,18 @@ public class NotebookServer extends WebSocketServlet
         text, title, params, config, textToRun);
 
     persistAndExecuteSingleParagraph(conn, note, p);
+  }
+
+  private Map<String, String> getDataSourceAttr(List<DataSources> dataSources, String dsName) {
+    if (dataSources == null) {
+      return null;
+    }
+    for (DataSources ds : dataSources) {
+      if (ds.name.equals(dsName)) {
+        return ds.attributes;
+      }
+    }
+    return null;
   }
 
   private void addNewParagraphIfLastParagraphIsExecuted(Note note, Paragraph p) {

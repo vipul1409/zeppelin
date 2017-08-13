@@ -17,8 +17,10 @@
 
 package org.apache.zeppelin.notebook;
 
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -37,8 +39,11 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.zeppelin.interpreter.*;
+import org.apache.zeppelin.notebook.utility.DSResourceResponse;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
 import org.quartz.JobBuilder;
@@ -542,9 +547,36 @@ public class Notebook implements NoteEventListener {
     return note;
   }
 
-  private void addDataSources(Note note) {
-    note.dataSources.clear();
+  public static Gson gson = new Gson();
 
+  public static void main(String[] args) {
+    addDataSources(null);
+  }
+
+  private static void addDataSources(Note note) {
+    note.dataSources.clear();
+    String dsJson = "";
+    try {
+      dsJson = getDataSources("testuser1");
+    } catch (Exception ex) {
+      logger.error("Error while fetching data sources", ex);
+    }
+
+    Type collectionType = new TypeToken<List<Map<String, Object>>>() {}.getType();
+    List<Map<String, Object>> dataSources = gson.fromJson(dsJson, collectionType);
+    for (Map<String, Object> ds : dataSources) {
+      String type = (String) ds.get("ds_type");
+      Map<String, String> params = null;
+      if (type.equals("mysqldatasource")) {
+        params = gson.fromJson((String) ds.get("data"), Map.class);
+        System.out.println("Parsing mysql ds");
+        note.dataSources.add(addMySqlDs(params));
+      } else if (type.equals("filedatasource")) {
+        params = gson.fromJson((String) ds.get("data"), Map.class);
+        System.out.println("Parsing file ds");
+        note.dataSources.add(addFileDs(params));
+      }
+    }
     //Add a mysql datasources
     Map<String, String> mySqlDsParams = new HashMap();
     mySqlDsParams.put("type", "mysql");
@@ -564,14 +596,41 @@ public class Notebook implements NoteEventListener {
     note.dataSources.add(fileDs);
   }
 
-  private String getDataSources(String testuser1) {
-    return "[{\"ds_type\":\"mysqldatasource\",\"data\":\"" +
-        "{'port': '2222', 'aliasName': 'test2', 'host': 'sdlkfnd', " +
-        "'password': 'dlkfnsdl', 'owner': 'testuser1', 'id': 9, " +
-        "'name': 'test22', 'username': 'lkdfnlds'}\"}," +
-        "{\"ds_type\":\"filedatasource\",\"data\":\"" +
-        "{'owner': 'testuser1', 'aliasName': 'test', " +
-        "'id': 2, 'url': 'http://www.google.com'}\"}]";
+  private static DataSources addFileDs(Map<String, String> params) {
+    Map<String, String> mySqlDsParams = new HashMap();
+    mySqlDsParams.put("type", "mysql");
+    mySqlDsParams.put("host", params.get("host"));
+    mySqlDsParams.put("dbname", params.get("name"));
+    mySqlDsParams.put("user", params.get("username"));
+    mySqlDsParams.put("password", params.get("password"));
+    DataSources mysqlDs = new DataSources(params.get("aliasName"), mySqlDsParams);
+    return mysqlDs;
+  }
+
+  private static DataSources addMySqlDs(Map<String, String> params) {
+    Map<String, String> fileDsParams = new HashMap();
+    fileDsParams.put("location", params.get("url"));
+    fileDsParams.put("type", "file");
+    DataSources fileDs = new DataSources(params.get("aliasName"), fileDsParams);
+    return fileDs;
+  }
+
+  private static String getDataSources(String user) throws Exception {
+    URIBuilder uriBuilder = new URIBuilder("http://localhost:8000/api/" + user);
+    URL url = (URL) uriBuilder.build().toURL();
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    connection.setRequestProperty("Content-Type", "application/json");
+    connection.setRequestProperty("Accept", "application/json");
+    connection.setRequestMethod("GET");
+    connection.setDoOutput(true);
+    int responseCode = connection.getResponseCode();
+    if (responseCode == 200) {
+      InputStream inputStream = connection.getInputStream();
+      BufferedReader bis = new BufferedReader(new InputStreamReader(inputStream));
+      String readLine = bis.readLine();
+      return readLine;
+    }
+    return "";
   }
 
   void loadAllNotes(AuthenticationInfo subject) throws IOException {
