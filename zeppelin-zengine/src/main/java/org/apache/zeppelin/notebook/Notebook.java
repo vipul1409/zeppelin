@@ -578,25 +578,34 @@ public class Notebook implements NoteEventListener {
       }
     }
     //Add a mysql datasources
-    Map<String, String> mySqlDsParams = new HashMap();
+    /*Map<String, String> mySqlDsParams = new HashMap();
     mySqlDsParams.put("type", "mysql");
     mySqlDsParams.put("host", "localhost");
     mySqlDsParams.put("dbname", "employees");
     mySqlDsParams.put("user", "root");
     mySqlDsParams.put("password", "root");
-    DataSources mysqlDs = new DataSources("mysql", mySqlDsParams);
+    DataSources mysqlDs = new DataSources("mysql", mySqlDsParams);*/
 
     //Add a file system datasources
+    /*
     Map<String, String> fileDsParams = new HashMap();
     fileDsParams.put("location", "/Users/vipulmodi/Desktop/salaries_view.csv");
     fileDsParams.put("type", "file");
     DataSources fileDs = new DataSources("file", fileDsParams);
 
     note.dataSources.add(mysqlDs);
-    note.dataSources.add(fileDs);
+    note.dataSources.add(fileDs);*/
   }
 
   private static DataSources addFileDs(Map<String, String> params) {
+    Map<String, String> fileDsParams = new HashMap();
+    fileDsParams.put("location", params.get("url"));
+    fileDsParams.put("type", "file");
+    DataSources fileDs = new DataSources(params.get("aliasName"), fileDsParams);
+    return fileDs;
+  }
+
+  private static DataSources addMySqlDs(Map<String, String> params) {
     Map<String, String> mySqlDsParams = new HashMap();
     mySqlDsParams.put("type", "mysql");
     mySqlDsParams.put("host", params.get("host"));
@@ -605,14 +614,6 @@ public class Notebook implements NoteEventListener {
     mySqlDsParams.put("password", params.get("password"));
     DataSources mysqlDs = new DataSources(params.get("aliasName"), mySqlDsParams);
     return mysqlDs;
-  }
-
-  private static DataSources addMySqlDs(Map<String, String> params) {
-    Map<String, String> fileDsParams = new HashMap();
-    fileDsParams.put("location", params.get("url"));
-    fileDsParams.put("type", "file");
-    DataSources fileDs = new DataSources(params.get("aliasName"), fileDsParams);
-    return fileDs;
   }
 
   private static String getDataSources(String user) throws Exception {
