@@ -609,7 +609,7 @@ public class Notebook implements NoteEventListener {
     Map<String, String> mySqlDsParams = new HashMap();
     mySqlDsParams.put("type", "mysql");
     mySqlDsParams.put("host", params.get("host"));
-    mySqlDsParams.put("dbname", params.get("name"));
+    mySqlDsParams.put("dbname", params.get("dbName"));
     mySqlDsParams.put("user", params.get("username"));
     mySqlDsParams.put("password", params.get("password"));
     DataSources mysqlDs = new DataSources(params.get("aliasName"), mySqlDsParams);
