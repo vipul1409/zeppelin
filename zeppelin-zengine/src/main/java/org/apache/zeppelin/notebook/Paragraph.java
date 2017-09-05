@@ -68,6 +68,8 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
   public transient String textToRun;
   private Map<String, Object> config; // paragraph configs like isOpen, colWidth, etc
   public GUI settings;          // form and parameter settings
+  public String alias = "";
+  public DataSources selectedDs = null;
 
   // since zeppelin-0.7.0, zeppelin stores multiple results of the paragraph
   // see ZEPPELIN-212

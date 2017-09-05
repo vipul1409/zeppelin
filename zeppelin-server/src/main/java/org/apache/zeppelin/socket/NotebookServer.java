@@ -1744,9 +1744,11 @@ public class NotebookServer extends WebSocketServlet
     final String output_name = (String) fromMessage.get("alias");
     String textToRun = "";
     LOG.info("Data source name is : " + dsName);
+    DataSources ds = null;
     if (dsName != null && !dsName.equals("")) {
+      ds = getDataSource(note.dataSources, dsName);
       Map<String, String> dsMapAttr =
-          getDataSourceAttr(note.dataSources, dsName);
+          (ds == null ? null : ds.attributes);
       String typeDs = (dsMapAttr == null ? "" : dsMapAttr.get("type"));
       if (typeDs.equals("mysql")) {
         String mySqlTemplate = "val %s = sqlContext.read.format(\"jdbc\")." +
@@ -1797,17 +1799,18 @@ public class NotebookServer extends WebSocketServlet
     LOG.info("Text : " + text);
     Paragraph p = setParagraphUsingMessage(note, fromMessage, paragraphId,
         text, title, params, config, textToRun);
-
+    p.alias = output_name;
+    p.selectedDs = ds;
     persistAndExecuteSingleParagraph(conn, note, p);
   }
 
-  private Map<String, String> getDataSourceAttr(List<DataSources> dataSources, String dsName) {
+  private DataSources getDataSource(List<DataSources> dataSources, String dsName) {
     if (dataSources == null) {
       return null;
     }
     for (DataSources ds : dataSources) {
       if (ds.name.equals(dsName)) {
-        return ds.attributes;
+        return ds;
       }
     }
     return null;

@@ -128,6 +128,10 @@ function ParagraphCtrl ($scope, $rootScope, $route, $window, $routeParams, $loca
     $scope.parentNote = note
     $scope.paragraph.datasourceNames = note.dataSources.map(function(ds) { return ds.name })
     $scope.paragraph.datasourceNames.push('spark')
+    if (newParagraph.selectedDs != null) {
+      $scope.paragraph.selectedDatasource = newParagraph.selectedDs.name
+      console.log('Setting default value')
+    }
     $scope.originalText = angular.copy(newParagraph.text)
     $scope.chart = {}
     $scope.baseMapOption = ['Streets', 'Satellite', 'Hybrid', 'Topo', 'Gray', 'Oceans', 'Terrain']

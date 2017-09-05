@@ -549,12 +549,12 @@ public class Notebook implements NoteEventListener {
 
   public static Gson gson = new Gson();
 
-  public static void main(String[] args) {
-    addDataSources(null);
-  }
-
   private static void addDataSources(Note note) {
     note.dataSources.clear();
+    note.dataSources = dsList;
+  }
+
+  private static void fetchDataSources() {
     String dsJson = "";
     try {
       dsJson = getDataSources("testuser1");
@@ -570,11 +570,11 @@ public class Notebook implements NoteEventListener {
       if (type.equals("mysqldatasource")) {
         params = gson.fromJson((String) ds.get("data"), Map.class);
         System.out.println("Parsing mysql ds");
-        note.dataSources.add(addMySqlDs(params));
+        dsList.add(addMySqlDs(params));
       } else if (type.equals("filedatasource")) {
         params = gson.fromJson((String) ds.get("data"), Map.class);
         System.out.println("Parsing file ds");
-        note.dataSources.add(addFileDs(params));
+        dsList.add(addFileDs(params));
       }
     }
     //Add a mysql datasources
@@ -634,9 +634,11 @@ public class Notebook implements NoteEventListener {
     return "";
   }
 
+  private static List<DataSources> dsList = new ArrayList<>();
+
   void loadAllNotes(AuthenticationInfo subject) throws IOException {
     List<NoteInfo> noteInfos = notebookRepo.list(subject);
-
+    fetchDataSources();;
     for (NoteInfo info : noteInfos) {
       loadNoteFromRepo(info.getId(), subject);
     }
@@ -664,7 +666,7 @@ public class Notebook implements NoteEventListener {
     }
 
     List<NoteInfo> noteInfos = notebookRepo.list(subject);
-
+    fetchDataSources();
     for (NoteInfo info : noteInfos) {
       loadNoteFromRepo(info.getId(), subject);
     }
